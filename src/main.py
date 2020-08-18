@@ -93,7 +93,22 @@ def create_config():
 
     return { 'username': username, 'token': token }
 
+def get_args():
+    parser = ArgumentParser()
+
+    parser.add_argument('op', metavar='operation', type=str, help='Operation type [create | delete]')
+    parser.add_argument('name', metavar='name', type=str, help='Repository name', nargs='?')
+    parser.add_argument('--desc', metavar='description', type=str, help='Repository description')
+    parser.add_argument('--public', dest='public', help='Public mode', action='store_true')
+
+    return parser.parse_args()
+
 def main():
+    args = get_args()
+
+    if not args:
+        return
+
     if os.path.isfile(CONFIG_FILE):
         with open(CONFIG_FILE, 'r') as f:
             configs = json.load(f)
@@ -105,15 +120,6 @@ def main():
     if not gh.verify():
         erase_config()
         main()
-
-    parser = ArgumentParser()
-
-    parser.add_argument('op', metavar='operation', type=str, help='Operation type [create | delete]')
-    parser.add_argument('name', metavar='name', type=str, help='Repository name', nargs='?')
-    parser.add_argument('--desc', metavar='description', type=str, help='Repository description')
-    parser.add_argument('--public', dest='public', help='Public mode', action='store_true')
-
-    args = parser.parse_args()
 
     if args.op == 'create':
         gh.create_repo(name=args.name, description=args.desc, private=False if args.public else True)
