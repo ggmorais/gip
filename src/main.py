@@ -1,6 +1,7 @@
 import requests
 import json
 import os
+import time
 
 from argparse import ArgumentParser
 
@@ -17,6 +18,9 @@ class Github:
 
         self.url = 'https://api.github.com'
     
+    def unexpected_error(self):
+        print('Sorry, an unexpected error occured, please try again later.')
+
     def verify(self):
         res = self.session.get(self.url)
 
@@ -53,7 +57,7 @@ class Github:
         if res.status_code == 422:
             print(f'Name {kwargs.get("name")} already exists.')
         else:
-            print('Sorry, an unexpected error occured, please try again later.')
+            self.unexpected_error()
 
     def delete_repo(self, name: str):
         res = self.session.delete(f'{self.url}/repos/{self.username}/{name}')
@@ -62,6 +66,28 @@ class Github:
             print(f'Repository {name} deleted successfully.')
         else:
             print(f'Repository {name} not found.')
+
+    def update_repo(self, **kwargs):
+        res = self.session.patch(f'{self.url}/user/repos', json=kwargs)
+
+        if res.status_code in [200, 201]:
+            print(f'Repository {kwargs.get("name")} updated successfully.')
+        else:
+            self.unexpected_error()
+
+    def set_visibility(self, name: str, change_to: str):
+        if change_to == 'public':
+            is_private = False
+        elif change_to == 'private':
+            is_private = True
+
+        res = self.session.patch(f'{self.url}/repos/{self.username}/{name}')
+
+        if res.status_code in [200, 201]:
+            print(f'Repository {name} is now {change_to.upper()}.')
+        else:
+            self.unexpected_error()
+
 
 def erase_config():
     if os.path.isfile(CONFIG_FILE):
@@ -128,6 +154,20 @@ def main():
         confirm = input(f'Are you sure you want to PERMANENTLY delete {args.name}? (y/n): ')
         if confirm == 'y':
             gh.delete_repo(name=args.name)
+        else:
+            return
+
+    if args.op == 'make_public':
+        confirm = input(f'Are you sure you want to make PUBLIC {args.name}? (y/n): ')
+        if confirm == 'y':
+            gh.set_visibility(name=args.name, change_to='public')
+        else:
+            return
+    
+    if args.op == 'make_private':
+        confirm = input(f'Are you sure you want to make PRIVATE {args.name}? (y/n): ')
+        if confirm == 'y':
+            gh.set_visibility(name=args.name, change_to='private')
         else:
             return
 
